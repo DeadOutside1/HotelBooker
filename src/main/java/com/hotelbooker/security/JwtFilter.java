@@ -3,6 +3,7 @@ package com.hotelbooker.security;
 import com.hotelbooker.service.UserService;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.io.IOException;
+import lombok.SneakyThrows;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.User;
@@ -26,37 +27,35 @@ public class JwtFilter extends OncePerRequestFilter {
     @Autowired
     private UserService userService;
 
+    @SneakyThrows
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         String authorizationHeader = request.getHeader("Authorization");
-
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-            try {
-                filterChain.doFilter(request, response);
-            } catch (java.io.IOException e) {
-                throw new RuntimeException(e);
-            }
+            filterChain.doFilter(request, response);
+            System.out.println("Pashol Nahui");
             return;
         }
 
         String token = authorizationHeader.substring(7);
-
         try {
-            String username = jwtUtil.extractUsername(token);
-            UserDetails userDetails = User.withUsername(username).password("").roles("USER").build();
-            UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+            System.out.println(jwtUtil.validateToken(token));
+            if (jwtUtil.validateToken(token)) {
+                String username = jwtUtil.extractUsername(token);
+                System.out.println(username);
+                UserDetails userDetails = userService.loadUserByUsername(username);
+                UsernamePasswordAuthenticationToken authentication =
+                        new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+            }
         } catch (JwtException e) {
+            logger.error("JWT validation error", e);
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.getWriter().write("JWT Error: " + e.getMessage());
+            return;
         }
 
-        try {
-            filterChain.doFilter(request, response);
-        } catch (java.io.IOException e) {
-            throw new RuntimeException(e);
-        }
+        filterChain.doFilter(request, response);
     }
 }

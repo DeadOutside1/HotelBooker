@@ -3,10 +3,12 @@ package com.hotelbooker.service;
 import com.hotelbooker.model.User;
 import com.hotelbooker.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -53,12 +55,12 @@ public class UserService {
     public UserDetails loadUserByUsername(String username) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
-
+        System.out.println("pidaras");
         return org.springframework.security.core.userdetails.User
                 .builder()
                 .username(user.getUsername())
                 .password(user.getPassword()) // Здесь пароль должен быть уже закодирован
-                .authorities("ROLE_USER") // Установи соответствующие роли
+                .authorities(Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + user.getRole()))) // Установи соответствующие роли
                 .build();
     }
 }
